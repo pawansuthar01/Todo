@@ -4,26 +4,29 @@ import { useDispatch } from "react-redux";
 import { addTodo } from "../TodoRedux/Slice/TodoList";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+
 export const TodoForm = () => {
   const [todoText, setTodoText] = useState("");
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState([]);
+  const [priority, setPriority] = useState("Low");
   const [selectTime, setSelectTime] = useState(new Date());
   const dispatch = useDispatch();
 
-  //*    uploadFiles//*
+  //* File Upload Handler *
   const onDrop = useCallback((acceptedFiles) => {
     const filesPromise = acceptedFiles.map((file) => {
       return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve({ name: file.name, data: reader.result });
+        const previewUrl = URL.createObjectURL(file);
+        resolve({ name: file.name, data: previewUrl, type: file.type });
       });
     });
+
     Promise.all(filesPromise).then((fileData) => {
-      setFiles((prevFile) => [...prevFile, ...fileData]);
+      setFiles((prevFiles) => [...prevFiles, ...fileData]);
     });
   }, []);
+
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
     accept: {
@@ -34,40 +37,59 @@ export const TodoForm = () => {
     multiple: true,
   });
 
-  const handelAddTodo = (e) => {
+  // Add Todo Handler
+  const handleAddTodo = (e) => {
     e.preventDefault();
-    if (todoText.length == 0) return;
-    selectTime.setMinutes(selectTime.getMinutes() + 10);
+    if (todoText.length === 0) return;
+
+    // Add 10 minutes to the selected time
+    const updatedTime = new Date(selectTime);
+    updatedTime.setMinutes(updatedTime.getMinutes() + 10);
+
     dispatch(
       addTodo({
         files,
         todoText,
-        selectTime: selectTime.toISOString(),
+        selectTime: updatedTime.toISOString(),
         description,
+        priority,
       })
     );
 
+    // Clear form
     setTodoText("");
     setFiles([]);
     setDescription("");
     setSelectTime(new Date());
-    setDescription("");
   };
+
   return (
-    <form className=" rounded-lg m-4 flex" onSubmit={handelAddTodo}>
+    <form className="rounded-lg m-4 flex flex-col" onSubmit={handleAddTodo}>
       <input
         type="text"
         value={todoText}
         onChange={(e) => setTodoText(e.target.value)}
-        placeholder="enter Todo text"
-        className="border-2"
+        placeholder="Enter Todo text"
+        className="border-2 p-2 mb-4"
       />
       <textarea
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        placeholder="enter Todo text"
-        className="border-2"
+        placeholder="Enter Todo description"
+        className="border-2 p-2 mb-4"
       />
+      <select
+        name="priority"
+        id="priority"
+        value={priority}
+        onChange={(e) => setPriority(e.target.value)}
+        className="border-2 p-2 mb-4"
+      >
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+      </select>
+
       <DatePicker
         selected={selectTime}
         onChange={(date) => setSelectTime(date)}
@@ -75,13 +97,15 @@ export const TodoForm = () => {
         dateFormat="Pp"
         className="border p-2 w-full mb-4"
       />
+
       <div
         {...getRootProps()}
-        className="border-2 border-dashed p-6 text-center cursor-pointer"
+        className="border-2 border-dashed p-6 text-center cursor-pointer mb-4"
       >
         <input {...getInputProps()} />
-        <p>Dreg && Drop files here,or click to select files</p>
+        <p>Drag & Drop files here, or click to select files</p>
       </div>
+
       {files.length > 0 && (
         <ul>
           {files.map((file, index) => (
@@ -91,6 +115,7 @@ export const TodoForm = () => {
           ))}
         </ul>
       )}
+
       <button type="submit" className="bg-blue-500 text-white p-2 mt-4">
         Add Todo
       </button>

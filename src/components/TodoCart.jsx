@@ -1,24 +1,58 @@
 import { useState, useEffect } from "react";
 import { CheckIcon } from "@heroicons/react/24/solid"; // ✅ Correct Import
 
-function TodoCart({ todo }) {
-  const [checked, setChecked] = useState(todo.finished);
-  const [timeLeft, setTimeLeft] = useState("");
-  const [statusColor, setStatusColor] = useState("bg-gray-200"); // Default color
-  useEffect(() => {
-    console.log(todo);
-  }, []);
-  useEffect(() => {
-    setChecked(todo.finished);
-  }, [todo.finished]);
+import {
+  AlertCircle,
+  Calendar,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Delete,
+  Edit2,
+  Flag,
+  Save,
+  Star,
+  Timer,
+  Trash2,
+  X,
+} from "lucide-react";
 
-  // Calculate Remaining Time
+export default function TodoCard({ todo, onToggle, onDelete, onUpdate }) {
+  const [checked, setChecked] = useState(todo.finished);
+  const [timeLeft, setTimeLeft] = useState({});
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedText, setEditedText] = useState(todo.todoText);
+  const [editedDescription, setEditedDescription] = useState(todo.description);
+
+  const handleToggle = () => {
+    setChecked(!checked);
+    onToggle?.(todo.id);
+  };
+
+  const handleSaveEdit = () => {
+    onUpdate?.(todo.id, {
+      todoText: editedText,
+      description: editedDescription,
+    });
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditedText(todo.todoText);
+    setEditedDescription(todo.description);
+    setIsEditing(false);
+  };
+
   const calculateTimeLeft = (targetDate) => {
     const now = new Date();
     const target = new Date(targetDate);
     const difference = target - now;
 
-    if (difference <= 0) return "Time Over";
+    if (difference <= 0) return "Overdue";
 
     const days = Math.floor(difference / (1000 * 60 * 60 * 24));
     const hours = Math.floor(
@@ -26,99 +60,284 @@ function TodoCart({ todo }) {
     );
     const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
     const sec = Math.floor((difference % (1000 * 60)) / 1000);
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    if (minutes > 0) return `${minutes}m`;
+    return `${sec}s`;
+  };
 
-    return `${days}d ${hours}h ${minutes}m ${sec}s`;
+  const getPriorityIcon = () => {
+    switch (todo.priority) {
+      case "high":
+        return <Flag className="w-4 h-4 text-red-500" />;
+      case "medium":
+        return <Star className="w-4 h-4 text-yellow-500" />;
+      case "Low":
+        return <Flag className="w-4 h-4 text-green-500" />;
+      default:
+        return null;
+    }
+  };
+
+  const getPriorityColor = () => {
+    switch (todo.priority) {
+      case "high":
+        return "bg-red-50 text-red-700 ring-red-600/20";
+      case "medium":
+        return "bg-yellow-50 text-yellow-700 ring-yellow-600/20";
+      case "low":
+        return "bg-green-50 text-green-700 ring-green-600/20";
+      default:
+        return "bg-gray-50 text-gray-700 ring-gray-600/20";
+    }
   };
 
   const formatDate = (isoString) => {
     const date = new Date(isoString);
-    const now = new Date();
-
-    const isToday = date.toDateString() === now.toDateString();
-
-    if (isToday) {
-      const hours = date.getHours();
-      const minutes = date.getMinutes();
-      const seconds = date.getSeconds();
-      return `${hours}:${minutes < 10 ? "0" + minutes : minutes}:${
-        seconds < 10 ? "0" + seconds : seconds
-      }`;
-    } else {
-      // If not today, return full date (e.g., "Jan 31, 2025")
-      const options = {
-        year: "numeric",
-        month: "short", // Show month in shortened form (e.g., "Jan")
-        day: "numeric", // Show the day (e.g., "31")
-      };
-      return date.toLocaleDateString("en-US", options);
-    }
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+    }).format(date);
   };
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const timeLeftText = calculateTimeLeft(todo.timestamp);
-      setTimeLeft(timeLeftText);
-
-      // Change Background Color Based on Status
-      if (todo.finished) {
-        setStatusColor("bg-green-500 text-white"); // Completed
-      } else if (timeLeftText === "Time Over") {
-        setStatusColor("bg-red-500 text-white"); // Deadline Missed
-      } else {
-        setStatusColor("bg-gray-200 text-black"); // Pending
-      }
-    }, 1000);
+      setTimeLeft((prev) => ({
+        ...prev,
+        [todo.id]: calculateTimeLeft(todo.timestamp),
+      }));
+    }, 60000);
 
     return () => clearInterval(interval);
-  }, [todo.timestamp, todo.finished]);
+  }, []);
+  useEffect(() => {
+    setTimeLeft((prev) => ({
+      ...prev,
+      [todo.id]: calculateTimeLeft(todo.timestamp),
+    }));
+  }, []);
+
+  const FilePreview = ({ files }) => {
+    const renderPreview = (file) => {
+      if (file.type.startsWith("image/")) {
+        return <img src={file.data} alt="Preview" className="" />;
+      } else if (file.type.startsWith("video/")) {
+        return (
+          <video
+            controls
+            src={file.data}
+            muted
+            className=" h-32 w-full object-cover"
+          />
+        );
+      } else if (file.type === "application/pdf") {
+        return (
+          <iframe
+            src={file.data}
+            width="100%"
+            height="250px"
+            title="PDF Preview"
+            className="border-2 border-gray-300 rounded-lg shadow-md"
+          ></iframe>
+        );
+      } else if (file.type === "text/plain") {
+        return (
+          <textarea
+            readOnly
+            value={file.content}
+            className="w-32 h-32 p-2 border"
+          />
+        );
+      }
+      return <p>Unsupported file type</p>;
+    };
+    return <div className="file-preview">{renderPreview(files)}</div>;
+  };
+  const getStatusIcon = () => {
+    if (checked) return <CheckCircle2 className="w-5 h-5 text-green-500" />;
+    if (timeLeft[todo.id] === "Overdue")
+      return <AlertCircle className="w-5 h-5 text-red-500" />;
+    return <Timer className="w-5 h-5 text-blue-500" />;
+  };
 
   return (
     <div
-      className={`max-w-[310px] rounded-lg shadow-[0_0_1px_0_black] border border-black transition-all duration-800 ${
-        checked ? "bg-green-500" : ""
-      } darK:shadow-[0_0_1px_0_white] dark:bg-gray-800 p-4 relative  m-1  `}
+      className={`
+        w-[310px]   rounded-xl shadow-sm transition-all duration-300
+        ${checked ? "bg-green-100" : "bg-white dark:bg-gray-700"}
+        border border-gray-200 hover:shadow-lg
+        ${
+          timeLeft[todo.id] === "Overdue" && !checked
+            ? "border-red-200 bg-red-100"
+            : ""
+        }
+        relative
+      `}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="flex justify-between items-center">
-        {/* Checkbox */}
-        <div>
-          <label className="relative cursor-pointer">
-            <input
-              type="checkbox"
-              className="hidden"
-              checked={checked}
-              onChange={() => setChecked(!checked)}
-            />
-            <span
-              className={`w-8 h-8 border-2 border-gray-500 rounded-full flex items-center justify-center transition-all duration-300 ${
-                checked
-                  ? "bg-green-500 border-blue-500 ring-2 ring-green-300"
-                  : "bg-transparent"
-              }`}
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleToggle}
+              className={`
+                flex items-center justify-center w-6 h-6 rounded-full
+                transition-all duration-200 transform hover:scale-110
+                ${
+                  checked
+                    ? "bg-green-500 text-white"
+                    : "border-2 border-gray-300 hover:border-green-500"
+                }
+              `}
             >
-              <CheckIcon
-                className={`w-5 h-5 text-white ${
-                  checked ? "opacity-100" : "opacity-0"
-                }`}
-              />
+              {checked && <Check className="w-4 h-4" />}
+            </button>
+            {getPriorityIcon()}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span
+              className={`
+              inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset
+              ${getPriorityColor()}
+            `}
+            >
+              {todo.priority}
             </span>
-          </label>
+            {getStatusIcon()}
+          </div>
         </div>
 
-        <p>{formatDate(todo.timestamp)}</p>
-      </div>
-      {/* Task Title */}
-      <h2 className="text-lg font-semibold mt-2">{todo.title}</h2>
+        <div className="space-y-2">
+          <div className="flex justify-between items-start gap-2">
+            {isEditing ? (
+              <input
+                type="text"
+                value={editedText}
+                onChange={(e) => setEditedText(e.target.value)}
+                className="flex-1 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus
+              />
+            ) : (
+              <h3
+                className={`font-medium text-lg flex-1 ${
+                  checked ? "line-through text-gray-500" : "text-gray-900"
+                }`}
+              >
+                {todo.todoText}
+              </h3>
+            )}
+            {!checked && isHovered && !isEditing && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="text-gray-400 hover:text-blue-500 transition-colors p-1"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                {onDelete && (
+                  <button
+                    onClick={() => onDelete(todo)}
+                    className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
+            {isEditing && (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveEdit}
+                  className="text-green-500 hover:text-green-600 transition-colors p-1"
+                >
+                  <Save className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  className="text-red-500 hover:text-red-600 transition-colors p-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
 
-      {/* Task Description */}
-      <p className="text-sm">{todo.description}</p>
+          <div
+            className={`
+            overflow-hidden transition-all duration-1000
+            ${
+              isExpanded
+                ? "max-h-[500px] overflow-y-scroll opacity-100"
+                : "max-h-0 opacity-0"
+            }
+          `}
+          >
+            {isEditing ? (
+              <textarea
+                value={editedDescription}
+                onChange={(e) => setEditedDescription(e.target.value)}
+                className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                rows={3}
+              />
+            ) : (
+              <div>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  {todo.description}
+                </p>
+                <div className="border p-2 rounded flex flex-wrap gap-2 ">
+                  {todo.files.map((file, index) => (
+                    <FilePreview key={index} files={file} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
-      {/* Countdown Timer */}
+          <div className="flex items-center justify-between text-sm text-gray-500">
+            <div className="flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              <span>{formatDate(todo.timestamp)}</span>
+            </div>
 
-      <div className="mt-2 text-sm">
-        <p>Time Left: {timeLeft}</p>
+            <div className="flex items-center gap-1">
+              <Clock className="w-4 h-4" />
+              <span
+                className={`
+                ${
+                  timeLeft[todo.id] === "Overdue" && !checked
+                    ? "text-red-500 font-medium"
+                    : ""
+                }
+                ${checked ? "text-green-500" : ""}
+              `}
+              >
+                {checked ? "Completed" : timeLeft[todo.id]}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="mt-3 text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+        >
+          {isExpanded ? (
+            <>
+              <ChevronUp className="w-4 h-4" />
+              Show less
+            </>
+          ) : (
+            <>
+              <ChevronDown className="w-4 h-4" />
+              Show more
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
 }
-
-export default TodoCart;

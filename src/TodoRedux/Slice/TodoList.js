@@ -15,12 +15,14 @@ const StoreTodoRedux = createSlice({
   initialState,
   reducers: {
     addTodo: (state, action) => {
-      const { files, todoText, selectTime, description } = action.payload;
+      const { files, todoText, selectTime, priority, description } =
+        action.payload;
       state.todoData.push({
         id: state.todoData.length + 1,
         todoText: todoText || null,
         description: description || null,
         finished: false,
+        priority: priority || null,
         timestamp: selectTime,
         notified: false,
         files: files || null,
