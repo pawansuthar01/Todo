@@ -29,10 +29,18 @@ export default function TodoCard({
   const [notified, setNotified] = useState(todo.notified);
   const [timeLeft, setTimeLeft] = useState({});
   const [isExpanded, setIsExpanded] = useState(false);
+
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(todo.todoText);
   const [editedDescription, setEditedDescription] = useState(todo.description);
+
+  useEffect(() => {
+    setChecked(todo.finished);
+    setNotified(todo.notified);
+    setEditedText(todo.todoText);
+    setEditedDescription(todo.description);
+  }, [todo]);
 
   const handleToggle = (id, checked, notified) => {
     setChecked(checked);
@@ -41,7 +49,7 @@ export default function TodoCard({
   };
   const handelNotified = (id, notified) => {
     setNotified(notified);
-    onToggle?.(id, checked, notified);
+    Notified?.(id, notified);
   };
 
   const handleSaveEdit = (id) => {
@@ -227,15 +235,15 @@ export default function TodoCard({
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
-                {onDelete && (
-                  <button
-                    onClick={() => onDelete(todo)}
-                    className="text-gray-400  cursor-pointer hover:text-red-500 transition-colors p-1"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
               </div>
+            )}
+            {isHovered && (
+              <button
+                onClick={() => onDelete(todo)}
+                className="text-gray-400  cursor-pointer hover:text-red-500 transition-colors p-1"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             )}
             {isEditing && (
               <div className="flex gap-2">
