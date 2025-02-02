@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { CheckIcon } from "@heroicons/react/24/solid"; // ✅ Correct Import
 
 import {
   AlertCircle,
@@ -19,8 +18,15 @@ import {
   X,
 } from "lucide-react";
 
-export default function TodoCard({ todo, onToggle, onDelete, onUpdate }) {
+export default function TodoCard({
+  Notified,
+  todo,
+  onToggle,
+  onDelete,
+  onUpdate,
+}) {
   const [checked, setChecked] = useState(todo.finished);
+  const [notified, setNotified] = useState(todo.notified);
   const [timeLeft, setTimeLeft] = useState({});
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -28,20 +34,27 @@ export default function TodoCard({ todo, onToggle, onDelete, onUpdate }) {
   const [editedText, setEditedText] = useState(todo.todoText);
   const [editedDescription, setEditedDescription] = useState(todo.description);
 
-  const handleToggle = () => {
-    setChecked(!checked);
-    onToggle?.(todo.id);
+  const handleToggle = (id, checked, notified) => {
+    setChecked(checked);
+    setNotified(notified);
+    onToggle?.(id, checked, notified);
+  };
+  const handelNotified = (id, notified) => {
+    setNotified(notified);
+    onToggle?.(id, checked, notified);
   };
 
-  const handleSaveEdit = () => {
-    onUpdate?.(todo.id, {
+  const handleSaveEdit = (id) => {
+    onUpdate?.(id, {
       todoText: editedText,
       description: editedDescription,
     });
     setIsEditing(false);
+    setIsExpanded(false);
   };
 
   const handleCancelEdit = () => {
+    setIsExpanded(false);
     setEditedText(todo.todoText);
     setEditedDescription(todo.description);
     setIsEditing(false);
@@ -60,9 +73,9 @@ export default function TodoCard({ todo, onToggle, onDelete, onUpdate }) {
     );
     const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
     const sec = Math.floor((difference % (1000 * 60)) / 1000);
-    if (days > 0) return `${days}d ${hours}h`;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    if (minutes > 0) return `${minutes}m`;
+    if (days > 0) return `${days}d ${hours}h ${minutes}m ${sec}s`;
+    if (hours > 0) return `${hours}h ${minutes}m ${sec}s`;
+    if (minutes > 0) return `${minutes}m ${sec}s`;
     return `${sec}s`;
   };
 
@@ -108,7 +121,7 @@ export default function TodoCard({ todo, onToggle, onDelete, onUpdate }) {
         ...prev,
         [todo.id]: calculateTimeLeft(todo.timestamp),
       }));
-    }, 60000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, []);
@@ -119,42 +132,6 @@ export default function TodoCard({ todo, onToggle, onDelete, onUpdate }) {
     }));
   }, []);
 
-  const FilePreview = ({ files }) => {
-    const renderPreview = (file) => {
-      if (file.type.startsWith("image/")) {
-        return <img src={file.data} alt="Preview" className="" />;
-      } else if (file.type.startsWith("video/")) {
-        return (
-          <video
-            controls
-            src={file.data}
-            muted
-            className=" h-32 w-full object-cover"
-          />
-        );
-      } else if (file.type === "application/pdf") {
-        return (
-          <iframe
-            src={file.data}
-            width="100%"
-            height="250px"
-            title="PDF Preview"
-            className="border-2 border-gray-300 rounded-lg shadow-md"
-          ></iframe>
-        );
-      } else if (file.type === "text/plain") {
-        return (
-          <textarea
-            readOnly
-            value={file.content}
-            className="w-32 h-32 p-2 border"
-          />
-        );
-      }
-      return <p>Unsupported file type</p>;
-    };
-    return <div className="file-preview">{renderPreview(files)}</div>;
-  };
   const getStatusIcon = () => {
     if (checked) return <CheckCircle2 className="w-5 h-5 text-green-500" />;
     if (timeLeft[todo.id] === "Overdue")
@@ -165,31 +142,43 @@ export default function TodoCard({ todo, onToggle, onDelete, onUpdate }) {
   return (
     <div
       className={`
-        w-[310px]   rounded-xl shadow-sm transition-all duration-300
-        ${checked ? "bg-green-100" : "bg-white dark:bg-gray-700"}
-        border border-gray-200 hover:shadow-lg
-        ${
-          timeLeft[todo.id] === "Overdue" && !checked
-            ? "border-red-200 bg-red-100"
-            : ""
-        }
-        relative
-      `}
+      w-[310px] sm:w-[450px] rounded-xl shadow-sm
+      ${checked && "bg-green-100"}
+      border border-gray-300 hover:shadow-lg
+      ${
+        timeLeft[todo.id] === "Overdue" && !checked
+          ? "border-red-200 bg-red-100"
+          : ""
+      }
+      relative 
+      transition-[max-height]  duration-500 ease-in-out
+    `}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="p-4">
+        {!checked && !notified && timeLeft[todo.id] === "Overdue" && (
+          <p className="text-red-400 flex  bg-red-200  justify-center  items-center gap-1 top-[-20px] right-2 pl-1 pr-1 rounded-t-lg absolute text-sm">
+            Task time is over{" "}
+            <X
+              className="pt-1 cursor-pointer  hover:scale-150"
+              size={15}
+              onClick={() => handelNotified(todo.id, !notified)}
+            />
+          </p>
+        )}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <button
-              onClick={handleToggle}
+              onClick={() => handleToggle(todo.id, !checked, !notified)}
+              title={!checked ? "Set not Completed" : "Completed"}
               className={`
-                flex items-center justify-center w-6 h-6 rounded-full
+                flex items-center cursor-pointer justify-center w-6 h-6 rounded-full
                 transition-all duration-200 transform hover:scale-110
                 ${
                   checked
                     ? "bg-green-500 text-white"
-                    : "border-2 border-gray-300 hover:border-green-500"
+                    : "border-2  border-gray-400 hover:border-green-500"
                 }
               `}
             >
@@ -223,7 +212,7 @@ export default function TodoCard({ todo, onToggle, onDelete, onUpdate }) {
               />
             ) : (
               <h3
-                className={`font-medium text-lg flex-1 ${
+                className={`font-medium text-lg flex-1 max-w-[80%] break-words ${
                   checked ? "line-through text-gray-500" : "text-gray-900"
                 }`}
               >
@@ -233,15 +222,15 @@ export default function TodoCard({ todo, onToggle, onDelete, onUpdate }) {
             {!checked && isHovered && !isEditing && (
               <div className="flex gap-2">
                 <button
-                  onClick={() => setIsEditing(true)}
-                  className="text-gray-400 hover:text-blue-500 transition-colors p-1"
+                  onClick={() => (setIsEditing(true), setIsExpanded(true))}
+                  className="text-gray-400 hover:text-blue-500  cursor-pointer transition-colors p-1"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 {onDelete && (
                   <button
                     onClick={() => onDelete(todo)}
-                    className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                    className="text-gray-400  cursor-pointer hover:text-red-500 transition-colors p-1"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -251,14 +240,14 @@ export default function TodoCard({ todo, onToggle, onDelete, onUpdate }) {
             {isEditing && (
               <div className="flex gap-2">
                 <button
-                  onClick={handleSaveEdit}
-                  className="text-green-500 hover:text-green-600 transition-colors p-1"
+                  onClick={() => handleSaveEdit(todo.id)}
+                  className="text-green-500  cursor-pointer hover:text-green-600 transition-colors p-1"
                 >
                   <Save className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleCancelEdit}
-                  className="text-red-500 hover:text-red-600 transition-colors p-1"
+                  className="text-red-500  cursor-pointer hover:text-red-600 transition-colors p-1"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -268,11 +257,11 @@ export default function TodoCard({ todo, onToggle, onDelete, onUpdate }) {
 
           <div
             className={`
-            overflow-hidden transition-all duration-1000
+         overflow-auto transition-all duration-800
             ${
               isExpanded
-                ? "max-h-[500px] overflow-y-scroll opacity-100"
-                : "max-h-0 opacity-0"
+                ? "max-h-[340px] opacity-100 "
+                : " overflow-hidden max-h-0 opacity-0"
             }
           `}
           >
@@ -284,15 +273,10 @@ export default function TodoCard({ todo, onToggle, onDelete, onUpdate }) {
                 rows={3}
               />
             ) : (
-              <div>
-                <p className="text-gray-600 text-sm leading-relaxed">
+              <div className="">
+                <p className="text-gray-600 text-sm leading-relaxed ">
                   {todo.description}
                 </p>
-                <div className="border p-2 rounded flex flex-wrap gap-2 ">
-                  {todo.files.map((file, index) => (
-                    <FilePreview key={index} files={file} />
-                  ))}
-                </div>
               </div>
             )}
           </div>
@@ -323,16 +307,16 @@ export default function TodoCard({ todo, onToggle, onDelete, onUpdate }) {
 
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="mt-3 text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+          className="mt-3 text-sm  cursor-pointer  text-gray-500 hover:text-blue-700 flex items-center gap-1"
         >
           {isExpanded ? (
             <>
-              <ChevronUp className="w-4 h-4" />
+              <ChevronUp className="w-4 h-4 hover:text-red-500" />
               Show less
             </>
           ) : (
             <>
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className="w-4 h-4 " />
               Show more
             </>
           )}

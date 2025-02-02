@@ -1,1 +1,15 @@
 @import "tailwindcss";
+/* Scrollbar styling for Webkit browsers (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 7px; /* Scrollbar width */
+  max-height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4a5568; /* Scroll thumb color */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent; /* Scroll track color */
+}

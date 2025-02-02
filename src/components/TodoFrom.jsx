@@ -8,34 +8,9 @@ import "react-datepicker/dist/react-datepicker.css";
 export const TodoForm = () => {
   const [todoText, setTodoText] = useState("");
   const [description, setDescription] = useState("");
-  const [files, setFiles] = useState([]);
   const [priority, setPriority] = useState("Low");
   const [selectTime, setSelectTime] = useState(new Date());
   const dispatch = useDispatch();
-
-  //* File Upload Handler *
-  const onDrop = useCallback((acceptedFiles) => {
-    const filesPromise = acceptedFiles.map((file) => {
-      return new Promise((resolve) => {
-        const previewUrl = URL.createObjectURL(file);
-        resolve({ name: file.name, data: previewUrl, type: file.type });
-      });
-    });
-
-    Promise.all(filesPromise).then((fileData) => {
-      setFiles((prevFiles) => [...prevFiles, ...fileData]);
-    });
-  }, []);
-
-  const { getRootProps, getInputProps } = useDropzone({
-    onDrop,
-    accept: {
-      "image/*": [],
-      "video/*": [],
-      "application/pdf": [],
-    },
-    multiple: true,
-  });
 
   // Add Todo Handler
   const handleAddTodo = (e) => {
@@ -48,7 +23,6 @@ export const TodoForm = () => {
 
     dispatch(
       addTodo({
-        files,
         todoText,
         selectTime: updatedTime.toISOString(),
         description,
@@ -58,7 +32,7 @@ export const TodoForm = () => {
 
     // Clear form
     setTodoText("");
-    setFiles([]);
+
     setDescription("");
     setSelectTime(new Date());
   };
@@ -97,24 +71,6 @@ export const TodoForm = () => {
         dateFormat="Pp"
         className="border p-2 w-full mb-4"
       />
-
-      <div
-        {...getRootProps()}
-        className="border-2 border-dashed p-6 text-center cursor-pointer mb-4"
-      >
-        <input {...getInputProps()} />
-        <p>Drag & Drop files here, or click to select files</p>
-      </div>
-
-      {files.length > 0 && (
-        <ul>
-          {files.map((file, index) => (
-            <li key={index} className="text-sm">
-              {file.name}
-            </li>
-          ))}
-        </ul>
-      )}
 
       <button type="submit" className="bg-blue-500 text-white p-2 mt-4">
         Add Todo

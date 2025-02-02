@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+// Initial state setup
 const initialState = {
   todoData:
     localStorage.getItem("todoData") == null
@@ -10,13 +11,14 @@ const initialState = {
   profile: localStorage.getItem("profile") || null,
 };
 
+// Redux slice
 const StoreTodoRedux = createSlice({
   name: "todoStore",
   initialState,
   reducers: {
     addTodo: (state, action) => {
-      const { files, todoText, selectTime, priority, description } =
-        action.payload;
+      const { todoText, selectTime, priority, description } = action.payload;
+
       state.todoData.push({
         id: state.todoData.length + 1,
         todoText: todoText || null,
@@ -25,51 +27,66 @@ const StoreTodoRedux = createSlice({
         priority: priority || null,
         timestamp: selectTime,
         notified: false,
-        files: files || null,
       });
+
       localStorage.setItem("todoData", JSON.stringify(state.todoData));
     },
-    editTodo: (state, action) => {
-      const { todo, todoText, files, description } = action.payload;
-      const index = state.todoData.findIndex((e) => e.id === todo.id);
-      if (index !== -1) {
-        if (todoText) {
-          state.todoData[index].todoText = todoText;
-        }
-        if (description) {
-          state.todoData[index].description = description;
-        }
 
-        if (files) {
-          state.todoData[index].files = files;
+    editTodo: (state, action) => {
+      const { id, data } = action.payload;
+
+      const index = state.todoData.findIndex((e) => e.id === id);
+
+      if (index !== -1) {
+        if (data.todoText) {
+          state.todoData[index].todoText = data.todoText;
+        }
+        if (data.description) {
+          state.todoData[index].description = data.description;
         }
       }
+
       localStorage.setItem("todoData", JSON.stringify(state.todoData));
     },
+
     deleteTodo: (state, action) => {
       const { todo } = action.payload;
-      state.todoData = state.todoData.filter((d) => d.id !== todo.id);
+      const index = state.todoData.findIndex((t) => t.id === todo.id);
+
+      if (index !== -1) {
+        // Remove the todo
+        state.todoData = state.todoData.filter((d) => d.id !== todo.id);
+      }
+
       localStorage.setItem("todoData", JSON.stringify(state.todoData));
     },
+
     finishedTodo: (state, action) => {
-      const { todo, isFinished, isNotified } = action.payload;
-      const index = state.todoData.findIndex((e) => e.id === todo.id);
+      const { id, isFinished, isNotified } = action.payload;
+      const index = state.todoData.findIndex((e) => e.id === id);
+
       if (index !== -1) {
         state.todoData[index].finished = isFinished;
         state.todoData[index].notified = isNotified;
       }
+
       localStorage.setItem("todoData", JSON.stringify(state.todoData));
     },
+
     NotifiedTodo: (state, action) => {
-      const { todo, isNotified } = action.payload;
-      const index = state.todoData.findIndex((e) => e.id === todo.id);
+      const { id, isNotified } = action.payload;
+      const index = state.todoData.findIndex((e) => e.id === id);
+
       if (index !== -1) {
         state.todoData[index].notified = isNotified;
       }
+
       localStorage.setItem("todoData", JSON.stringify(state.todoData));
     },
   },
 });
-export const { addTodo, editTodo, finishedTodo, deleteTodo } =
+
+// Export actions and reducer
+export const { addTodo, editTodo, finishedTodo, deleteTodo, NotifiedTodo } =
   StoreTodoRedux.actions;
 export default StoreTodoRedux.reducer;
