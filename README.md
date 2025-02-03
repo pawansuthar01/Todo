@@ -4,7 +4,7 @@ Ek simple React Todo app jo local storage mein, text,, ko store karta hai ..
 Live on => Netlify
 
 ```
-https://endearing-mochi-b7e125.netlify.app/
+https://rococo-churros-d7abcd.netlify.app/
 ```
 
 ## Features
