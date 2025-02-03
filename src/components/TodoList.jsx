@@ -25,21 +25,24 @@ function TodoList() {
   const [page, setPage] = useState(1);
   const [filteredTodos, setFilteredTodos] = useState(todoData);
   const [type, setType] = useState("all");
-  const [todosPerPage, setTodosPerPage] = useState(10);
+
+  const [todosPerPage, setTodosPerPage] = useState(
+    window.innerWidth <= 700 ? 10 : 25
+  );
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
   const startIndex = (page - 1) * todosPerPage;
   const endIndex = startIndex + todosPerPage;
   const currentTodos = filteredTodos.slice(startIndex, endIndex);
   useEffect(() => {
+    const updatedTime = new Date(toDate);
+    updatedTime.setMinutes(updatedTime.getMinutes() + 10);
+    setToDate(updatedTime);
+  }, []);
+  useEffect(() => {
     setFilteredTodos(todoData);
   }, [todoData]);
 
-  const handleFromDateChange = (data) => {
-    setFromDate(data);
-  };
-
-  // Handle 'to' date change
   const handleToDateChange = (data) => {
     setToDate(data);
   };
@@ -64,7 +67,6 @@ function TodoList() {
     if (!fromDate || !toDate) {
       return;
     }
-
     const startDate = new Date(fromDate);
     const endDate = new Date(toDate);
 
@@ -112,7 +114,6 @@ function TodoList() {
   };
 
   const handleHide = () => {
-    // Add a small delay to allow the transition to complete
     setShowFrom(false);
   };
 
@@ -229,7 +230,7 @@ function TodoList() {
         <div className=" sm:hidden w-full flex justify-center">
           <button
             onClick={handleSearch}
-            className="flex  items-center gap-2 font-semibold cursor-pointer rounded bg-gradient-to-b from-teal-500 to-teal-600 text-white px-6 py-2 transition-all duration-200 bg-gradient-to-b from-teal-500 to-teal-600 shadow-md"
+            className="flex  items-center gap-2 font-semibold cursor-pointer rounded  text-white px-6 py-2 transition-all duration-200 bg-gradient-to-b from-teal-500 to-teal-600 shadow-md"
           >
             <FaSearch size={16} className="text-white" />
             Search by Time
